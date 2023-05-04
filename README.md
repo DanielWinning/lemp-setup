@@ -170,6 +170,12 @@ Then check you can hit your domain via HTTPS in your browser.
 
 ## MySQL
 
+Install MySQL:
+
+```shell
+sudo apt install mysql-server
+```
+
 Connect to your MySQL instance:
 
 ```shell
