@@ -61,12 +61,6 @@ Update existing packages:
 sudo apt update
 ```
 
-Set ownership of the `/var/www` directory:
-
-```shell
-sudo chown -R $USER:$USER /var/www
-```
-
 ## Nginx/PHP
 
 Install Nginx and PHP:
@@ -131,6 +125,12 @@ Then reload Nginx to apply your changes:
 
 ```shell
 sudo systemctl reload nginx
+```
+
+Set ownership of the `/var/www` directory:
+
+```shell
+sudo chown -R $USER:$USER /var/www
 ```
 
 Make a public index file for testing your settings:
@@ -209,7 +209,7 @@ Next, update the bind address to allow remote access:
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
 
-Set the bind address to `0.0.0.0`. Then run the `mysql_secure_installation` script:
+Set the bind address to `0.0.0.0` or comment out the line. Then run the `mysql_secure_installation` script:
 
 ```shell
 sudo mysql_secure_installation
@@ -221,3 +221,8 @@ Then restart MySQL for changes to take effect:
 sudo systemctl restart mysql
 ```
 
+Allow remote access from your local IP address:
+
+```shell
+sudo ufw allow from remote_ip_address to any port 3306;
+```
