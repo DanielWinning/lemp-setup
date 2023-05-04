@@ -1,20 +1,28 @@
-# Guide to configuring a LEMP stack server
+# LEMP Server Setup
 
-This repository is designed to help understand the required steps when setting up
-a new LEMP stack VPS. I'm using a Digital Ocean droplet, but you should be able to
-follow this as long as you have an Ubuntu 22.04 based server.
+This guide walks through the steps required to setup and configure a LEMP stack server on Ubuntu 22.04.
 
-- Create a new VPS with Ubuntu 22.04.
-- Configure your server to use SSH.
-- Register domain name and point at your VPS.
+- Create a VPS with Ubuntu 22.04 with SSH
+- Register a domain name and point it at the VPS
 
-## Initial Server Setup
+**Contents**
 
-Login as the root user by opening a local terminal and running:
+- <a href="#initial-setup">Initial Setup</a>
+  - <a href="#create-new-sudo-user">Create New Sudo User</a>
+  - <a href="#update-package-manager">Update Package Manager</a>
+- <a href="#nginxphp">Nginx/PHP</a>
+  - <a href="#install-ssl-certificate">Install SSL Certificate</a>
+- <a href="#mysql">MySQL</a>
+
+## Initial Setup
+
+SSH into your server as the root user:
 
 ```shell
 ssh root@<server-ip-address>
 ```
+
+### Create New Sudo User
 
 It is usually discouraged to use the root user regularly, so create a new user
 and grant sudo privileges:
@@ -24,32 +32,22 @@ adduser username
 usermod -aG sudo username
 ```
 
-Next, enable the firewall and allow OpenSSH:
-
-```shell
-ufw enable
-ufw allow OpenSSH
-```
-
-> To list available apps use the command:
-> ```shell
-> ufw app list
-> ```
->
-> To check firewall status, use the command:
-> ```shell
-> ufw status
-> ```
-
 Copy your SSH key to the new user directory (so you can SSH to the server as
 your new user):
 
 ```shell
 rsync --archive --chown=username:username ~/.ssh /home/username
+```
+
+Then allow OpenSSH and enable the firewall:
+
+```shell
+ufw enable
+ufw allow OpenSSH
 exit
 ```
 
-## Install Required Apps/Software
+### Update Package Manager
 
 SSH to the server as your new user:
 
@@ -57,39 +55,41 @@ SSH to the server as your new user:
 ssh username@<server-ip-address>
 ```
 
-Update existing packages and install required packages - this installs the EMP part
-of your stack:
+Update existing packages:
 
 ```shell
 sudo apt update
-sudo apt install nginx mysql-server php8.1-fpm php-cli unzip nodejs npm -y
 ```
 
-Update firewall settings to allow Nginx (HTTP & HTTPS):
+Set ownership of the `/var/www` directory:
+
+```shell
+sudo chown -R $USER:$USER /var/www
+```
+
+## Nginx/PHP
+
+Install Nginx and PHP:
+
+```shell
+sudo apt install nginx php8.1-fpm php-cli unzip
+```
+
+Update the firewall to allow Nginx connections on HTTP/HTTPS:
 
 ```shell
 sudo ufw allow 'Nginx Full'
 ```
 
-## Server: Nginx
-
-Create a directory for your new app and change ownership to current logged-in
-user:
-
-```shell
-sudo mkdir /var/www/domain.com
-sudo chown -R $USER:$USER /var/www/domain.com
-```
-
-Next, add some basic Nginx config:
+Create the config file for your domain:
 
 ```shell
 sudo nano /etc/nginx/sites-available/domain.com
 ```
 
-Paste the following and save:
+Paste in the following configuration:
 
-```nginx configuration
+```nginx
 server {
     server_name domain.com www.domain.com;
     root /var/www/domain.com/public;
@@ -102,8 +102,8 @@ server {
 
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_split_path_info ^(.+`.php)(/.+)$;
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_split_path_info ^(.+`.php)(/.+)$;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param PATH_INFO $fastcgi_path_info;
@@ -115,60 +115,95 @@ server {
 }
 ```
 
-Confirm the config is valid:
-
-```
-sudo nginx -t
-```
-
-Create a symbolic link to your `sites-enabled` directory:
+Add a symbolic link to your config file in sites enabled:
 
 ```shell
 sudo ln -s /etc/nginx/sites-available/domain.com /etc/nginx/sites-enabled/
 ```
 
-Reload Nginx to apply changes:
+Unlink the default server block:
+
+```shell
+sudo unlink /etc/nginx/sites-enabled/default
+```
+
+Then reload Nginx to apply your changes:
 
 ```shell
 sudo systemctl reload nginx
 ```
 
-Create an index file to test:
+Make a public index file for testing your settings:
 
 ```shell
+sudo mkdir -p /var/www/domain.com/public
 sudo nano /var/www/domain.com/public/index.php
 ```
 
-Test by hitting your domain name in your browser.
+Check you can access your domain in your browser.
 
-## Database: MySQL
+### Install SSL Certificate
 
-Connect to your mysql instance:
+You can use **Certbot** to install free, auto-renewing SSL certificates from **LetsEncrypt**.
+
+First install `snap` and ensure it is up-to-date:
+
+```shell
+sudo snap install core
+sudo snap refresh core
+```
+
+Install certbot and enable global usage of the `certbot` command:
+
+```shell
+sudo snap install --classic certbot
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+```
+
+Install your SSL certificates:
+
+```shell
+sudo certbot --nginx -d mydomain.com -d www.mydomain.com
+```
+
+Then check you can hit your domain via HTTPS in your browser.
+
+## MySQL
+
+Connect to your MySQL instance:
 
 ```shell
 sudo mysql
 ```
 
-Then run the commands found in `/sql/users.sql` to update your root user and create
-new database users. Replace `0.0.0.0` with your local IP if you wish to add a remote user:
+Then update the root user:
 
-```shell
-mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password by 'my-secret-password';
-mysql> CREATE USER 'user'@'localhost' IDENTIFIED WITH mysql_native_password by 'my-secret-password';
-mysql> CREATE USER 'user'@'0.0.0.0' IDENTIFIED WITH mysql_native_password by 'my-secret-password';
-mysql> GRANT CREATE, ALTER, DROP, INSERT, UPDATE, DELETE, SELECT, REFERENCES, RELOAD on *.* TO 'user'@'localhost' WITH GRANT OPTION;
-mysql> GRANT CREATE, ALTER, DROP, INSERT, UPDATE, DELETE, SELECT, REFERENCES, RELOAD on *.* TO 'user'@'0.0.0.0' WITH GRANT OPTION;
-mysql> FLUSH PRIVILEGES;
-mysql> exit
+```mysql
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password by 'my-secret-password';
 ```
 
-Next update the bind address to allow remote access:
+Create a new user for yourself/your application to use (so you aren't using root):
+
+```mysql
+CREATE USER 'user'@'host' IDENTIFIED WITH mysql_native_password by 'my-secret-password';
+```
+
+Grant relevant privileges to the new user and flush privileges:
+
+```mysql
+GRANT CREATE, ALTER, DROP, INSERT, UPDATE, DELETE, SELECT, REFERENCES, RELOAD on *.* TO 'user'@'host' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+```
+
+Then exit the mysql terminal.
+
+Next, update the bind address to allow remote access:
 
 ```shell
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
 
-Set bind address to `0.0.0.0`. Then run the `mysql_secure_installation` script:
+Set the bind address to `0.0.0.0`. Then run the `mysql_secure_installation` script:
 
 ```shell
 sudo mysql_secure_installation
@@ -180,86 +215,3 @@ Then restart MySQL for changes to take effect:
 sudo systemctl restart mysql
 ```
 
-You can test your Database connection in your IDE or whatever local tool you usually use
-to connect to your databases.
-
-## Next Steps
-
-### Install SSL Certificate
-
-To enable free, auto-renewing SSL certificates, you can use **Certbot**. Certbot requires
-`snap` to be installed before it can be used. Your server may already come with this out
-of the box.
-
-```
-sudo snap install core
-sudo snap refresh core
-```
-
-Install certbot and enable global usage of the `certbot` command:
-
-```
-sudo snap install --classic certbot
-sudo ln -s /snap/bin/certbot /usr/bin/certbot
-```
-
-Install your SSL certificates:
-
-```
-sudo certbot --nginx -d mydomain.com -d www.mydomain.com
-```
-
-If you get failures validating IPv6 addresses, you can check your DNS settings
-to see if you have AAAA records defined. You can delete these records or ensure
-that your server also has an IPv6 address. On Digital Ocean you can do this under
-the network tab of your droplet.
-
-Once your SSL certificates are installed check you can hit your domain using HTTPS.
-
-### Setup Git
-
-Git may already be installed on your server. To check:
-
-```shell
-git --version
-```
-
-If the `git` command is not recognised, install it:
-
-```shell
-sudo apt install git -y
-```
-
-Then you can set your username/email address:
-
-```shell
-git config --global user.name "username"
-git config --global user.email "email@example.com"
-```
-
-### Install Composer
-
-Download Composer:
-
-```shell
-curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
-```
-
-Verify installer:
-
-```shell
-HASH=`curl -sS https://composer.github.io/installer.sig`
-php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-```
-
-Install Composer:
-
-```shell
-sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
-```
-
-Confirm Composer is installed correctly:
-
-```shell
-composer
-```
