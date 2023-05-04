@@ -149,7 +149,7 @@ Connect to your mysql instance:
 sudo mysql
 ```
 
-Then run the commands found in `/mysql/users.sql` to update your root user and create
+Then run the commands found in `/sql/users.sql` to update your root user and create
 new database users. Replace `0.0.0.0` with your local IP if you wish to add a remote user:
 
 ```shell
