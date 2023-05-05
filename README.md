@@ -13,6 +13,9 @@ This guide walks through the steps required to setup and configure a LEMP stack 
 - <a href="#nginxphp">Nginx/PHP</a>
   - <a href="#install-ssl-certificate">Install SSL Certificate</a>
 - <a href="#mysql">MySQL</a>
+- <a href="#deploying-from-github">Deploying from GitHub</a>
+  - <a href="#installing-an-ssh-key-pair">Installing an SSH key pair</a>
+  - <a href="#installing-configuring-git">Installing/configuring Git</a>
 
 ## Initial Setup
 
@@ -226,3 +229,41 @@ Allow remote access from your local IP address:
 ```shell
 sudo ufw allow from remote_ip_address to any port 3306;
 ```
+
+## Deploying from GitHub
+
+### Installing an SSH key pair
+
+To clone from private repositories, you'll need to add your servers SSH key to GitHub, so create one:
+
+```shell
+ssh-keygen
+```
+
+Copy and paste the output of the following command into a new SSH key on GitHub:
+
+```shell
+cat /home/username/.ssh/id_rsa.pub
+```
+
+### Installing/configuring Git
+
+Git may already come installed on your server. You can check by running the `git` command.
+
+If Git isn't installed, install it:
+
+```shell
+sudo apt install git
+```
+
+Set your Git credentials:
+
+```shell
+git config --global user.name "username"
+git config --global user.email "email"
+```
+
+> To add:
+> - Install composer
+> - Install nodejs/npm (and update to latest stable)
+> - Cloning from repo
