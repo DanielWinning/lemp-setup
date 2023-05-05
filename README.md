@@ -16,6 +16,7 @@ This guide walks through the steps required to setup and configure a LEMP stack 
 - <a href="#deploying-from-github">Deploying from GitHub</a>
   - <a href="#installing-an-ssh-key-pair">Installing an SSH key pair</a>
   - <a href="#installing-configuring-git">Installing/configuring Git</a>
+  - <a href="#installing-composer-and-node">Installing Composer/Node</a>
 
 ## Initial Setup
 
@@ -263,8 +264,45 @@ git config --global user.name "username"
 git config --global user.email "email"
 ```
 
-> To add:
-> - Install composer
-> - Install nodejs/npm (and update to the latest stable release)
-> - Cloning from repo
-> - Opcache setup
+### Installing Composer and Node
+
+To install Composer and nodejs (along with npm), run the following:
+
+```shell
+sudo apt install composer nodejs npm -y
+```
+
+Then update Node to the latest stable release (seek alternative commands if you need to use a specific version):
+
+```shell
+sudo npm cache clean -f
+sudo npm install -g n
+sudo n stable
+```
+
+### Clone from repository
+
+Next, delete the directory you created earlier for your domain:
+
+```shell
+sudo rm -r /var/www/domain.com
+```
+
+Then clone your repository:
+
+```shell
+git clone git@github.com:username/project.git /var/www/domain.com
+```
+
+If your web root is something other than the `public` directory, you will need to update your Nginx
+server block accordingly.
+
+To run commands such as `composer install`, you may need to install/enable additional PHP extensions.
+You can install these with `sudo apt install`, for example, if you need install the `curl` and `gd` extensions 
+you can do so with the following command:
+
+```shell
+sudo apt install php-curl php-gd -y
+```
+
+You should now be able to `cd` into `/var/www/domain.com` and execute any commands you need to run.
