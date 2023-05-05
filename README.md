@@ -265,5 +265,6 @@ git config --global user.email "email"
 
 > To add:
 > - Install composer
-> - Install nodejs/npm (and update to latest stable)
+> - Install nodejs/npm (and update to the latest stable release)
 > - Cloning from repo
+> - Opcache setup
