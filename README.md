@@ -17,6 +17,7 @@ This guide walks through the steps required to setup and configure a LEMP stack 
   - <a href="#installing-an-ssh-key-pair">Installing an SSH key pair</a>
   - <a href="#installing-configuring-git">Installing/configuring Git</a>
   - <a href="#installing-composer-and-node">Installing Composer/Node</a>
+  - <a href="#clone-from-repository">Clone from repository</a>
 
 ## Initial Setup
 
